@@ -25,3 +25,10 @@ Here are some frequently-asked questions:
     * No -- you can use any dimensions you like, so long as the image contains each colour exactly once.
 * Can I use third party css/js plotting library?
     * No
+
+## Author's comments
+My solution to this challenge involved the use of TypeScript as I am of the belief it makes for better more trustworthy code.
+
+The foundation of this solution was built upon the TypeScript template for create-react-app: https://create-react-app.dev/docs/adding-typescript/
+
+This solution certainly isn't perfect and can be improved in many areas, some of which I am likely to touch on if I get the time.
