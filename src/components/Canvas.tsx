@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 
 const width = 256,
   height = 128,
@@ -6,21 +6,20 @@ const width = 256,
   colSteps = 256 / 32
 
 let allColours: Array<Colour> = []
-let allPixels: number[][] = []
+let allPixels: boolean[][] = []
 
 const Canvas = () => {
   const canvasRef = useRef() as React.MutableRefObject<HTMLCanvasElement>
 
   useEffect(() => {
     initialise()
-
     // once the component has mounted
     const canvas = canvasRef.current
     const context = canvas.getContext('2d') as CanvasRenderingContext2D
 
     // select a pixel as the starting location and colour it
     let currPixel = new Pixel(randInt(0, width - 1), randInt(0, height - 1))
-    allPixels[currPixel.x][currPixel.y] = 0
+    allPixels[currPixel.x][currPixel.y] = false
     let currColour = allColours.splice(randInt(0, allColours.length - 1), 1)[0]
 
     draw(context, currPixel, currColour)
@@ -30,7 +29,6 @@ const Canvas = () => {
       currColour = getSimilarColour(currColour)
       draw(context, currPixel, currColour)
     }
-    console.log('Rendered Successfully', allColours.length)
   })
 
   return <canvas ref={canvasRef} width={width} height={height} />
@@ -40,19 +38,16 @@ export default Canvas
 
 const initialise = () => {
   // add all the colours to an array
-  for (let red = 7; red < 256; red += colSteps) {
-    for (let blue = 7; blue < 256; blue += colSteps) {
-      for (let green = 7; green < 256; green += colSteps) {
+  for (let red = 7; red < 256; red += colSteps)
+    for (let blue = 7; blue < 256; blue += colSteps)
+      for (let green = 7; green < 256; green += colSteps)
         allColours.push(
           new Colour(Math.round(red), Math.round(blue), Math.round(green)),
         )
-      }
-    }
-  }
 
   for (let x = 0; x < width; x++) {
     allPixels[x] = []
-    for (let y = 0; y < height; y++) allPixels[x][y] = 1
+    for (let y = 0; y < height; y++) allPixels[x][y] = true
   }
 }
 
@@ -95,21 +90,20 @@ function draw(ctx: CanvasRenderingContext2D, pixel: Pixel, colour: Colour) {
 }
 
 function getNeighbourOrRandomPixel(pixel: Pixel): Pixel {
-  for (let x = pixel.x - 1; x <= pixel.x + 1; x++) {
-    for (let y = pixel.y - 1; y <= pixel.y + 1; y++) {
+  for (let y = pixel.y - 1; y <= pixel.y + 1; y++) {
+    for (let x = pixel.x - 1; x <= pixel.x + 1; x++) {
       if (
-        !(
-          x < 0 ||
-          y < 0 ||
-          x > width - 1 ||
-          y > height - 1 ||
-          (pixel.x === x && pixel.y === y)
-        )
-      ) {
-        if (allPixels[x][y] === 1) {
-          allPixels[x][y] = 0
-          return new Pixel(x, y)
-        }
+        x < 0 ||
+        y < 0 ||
+        x > width - 1 ||
+        y > height - 1 ||
+        (pixel.x === x && pixel.y === y)
+      )
+        continue
+
+      if (allPixels[x][y]) {
+        allPixels[x][y] = false
+        return new Pixel(x, y)
       }
     }
   }
@@ -117,7 +111,7 @@ function getNeighbourOrRandomPixel(pixel: Pixel): Pixel {
   // if no neighbour is available find one any pixel that is
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      if (allPixels[x][y] === 1) return new Pixel(x, y)
+      if (allPixels[x][y]) return new Pixel(x, y)
     }
   }
 
