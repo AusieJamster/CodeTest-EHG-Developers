@@ -26,6 +26,13 @@ Here are some frequently-asked questions:
 * Can I use third party css/js plotting library?
     * No
 
+## Installation
+### Quick install
+1. Clone or copy the repository contents
+2. run `npm i` to install dependencies
+3. run `npm start` to start a local server
+4. Use your browser to access `http://localhost:3000/`
+
 ## Author's comments
 My solution to this challenge involved the use of TypeScript as I am of the belief it makes for better more trustworthy code.
 
