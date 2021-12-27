@@ -1,9 +1,11 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect } from 'react'
 
-const width = 256,
-  height = 128,
-  similarityTolerance = 500,
-  colSteps = 256 / 32
+// 256^3 = 16,777,216 colours in 24-bit color
+const colourMagnitude = 32, //number of colours is colourMagnitude^3
+  colSteps = 256 / colourMagnitude, // break 256 into x steps
+  width = colourMagnitude * 8,
+  height = Math.pow(colourMagnitude, 3) / width,
+  similarityTolerance = 500
 
 let allColours: Array<Colour> = []
 let allPixels: boolean[][] = []
@@ -14,11 +16,15 @@ const Canvas = () => {
   useEffect(() => {
     initialise()
     // once the component has mounted
-    const canvas = canvasRef.current
-    const context = canvas.getContext('2d') as CanvasRenderingContext2D
+    const context = canvasRef.current.getContext(
+      '2d',
+    ) as CanvasRenderingContext2D
 
     // select a pixel as the starting location and colour it
-    let currPixel = new Pixel(randInt(0, width - 1), randInt(0, height - 1))
+    let currPixel: Pixel = {
+      x: randInt(0, width - 1),
+      y: randInt(0, height - 1),
+    }
     allPixels[currPixel.x][currPixel.y] = false
     let currColour = allColours.splice(randInt(0, allColours.length - 1), 1)[0]
 
@@ -36,14 +42,16 @@ const Canvas = () => {
 
 export default Canvas
 
-const initialise = () => {
+function initialise() {
   // add all the colours to an array
-  for (let red = 7; red < 256; red += colSteps)
-    for (let blue = 7; blue < 256; blue += colSteps)
-      for (let green = 7; green < 256; green += colSteps)
-        allColours.push(
-          new Colour(Math.round(red), Math.round(blue), Math.round(green)),
-        )
+  for (let red = colSteps - 1; red < 256; red += colSteps)
+    for (let blue = colSteps - 1; blue < 256; blue += colSteps)
+      for (let green = colSteps - 1; green < 256; green += colSteps)
+        allColours.push({
+          red: Math.round(red),
+          blue: Math.round(blue),
+          green: Math.round(green),
+        })
 
   for (let x = 0; x < width; x++) {
     allPixels[x] = []
@@ -51,47 +59,9 @@ const initialise = () => {
   }
 }
 
-class Colour {
-  red: number
-  blue: number
-  green: number
-  constructor(red: number, blue: number, green: number) {
-    this.red = red
-    this.blue = blue
-    this.green = green
-  }
-
-  asString(): string {
-    return 'rgb(' + this.red + ',' + this.blue + ',' + this.green + ')'
-  }
-}
-
-class Pixel {
-  x: number
-  y: number
-
-  constructor(x: number, y: number) {
-    this.x = x
-    this.y = y
-  }
-
-  equals(_pixel: Pixel): boolean {
-    return _pixel.x === this.x && _pixel.y === this.y
-  }
-}
-
-function randInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
-
-function draw(ctx: CanvasRenderingContext2D, pixel: Pixel, colour: Colour) {
-  ctx.fillStyle = colour.asString()
-  ctx.fillRect(pixel.x, pixel.y, 1, 1)
-}
-
 function getNeighbourOrRandomPixel(pixel: Pixel): Pixel {
   for (let y = pixel.y - 1; y <= pixel.y + 1; y++) {
-    for (let x = pixel.x - 1; x <= pixel.x + 1; x++) {
+    for (let x = pixel.x; x <= pixel.x + 1; x++) {
       if (
         x < 0 ||
         y < 0 ||
@@ -103,15 +73,17 @@ function getNeighbourOrRandomPixel(pixel: Pixel): Pixel {
 
       if (allPixels[x][y]) {
         allPixels[x][y] = false
-        return new Pixel(x, y)
+        return { x, y }
       }
     }
   }
 
   // if no neighbour is available find one any pixel that is
   for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
-      if (allPixels[x][y]) return new Pixel(x, y)
+    const posY = allPixels[x].findIndex((p) => p)
+    if (posY >= 0) {
+      allPixels[x][posY] = false
+      return { x, y: posY }
     }
   }
 
@@ -121,11 +93,7 @@ function getNeighbourOrRandomPixel(pixel: Pixel): Pixel {
 }
 
 function getSimilarColour(colour: Colour): Colour {
-  let similarColours: Array<{
-    index: number
-    diff: number
-    colour: Colour
-  }> = []
+  let similarColours: Array<ColourCompare> = []
 
   for (let i = 0; i < similarityTolerance && i < allColours.length; i++) {
     const index = randInt(0, allColours.length - 1)
@@ -142,13 +110,37 @@ function getSimilarColour(colour: Colour): Colour {
     })
   }
 
-  const toReturn = similarColours.reduce(
-    (
-      prev: { index: number; diff: number; colour: Colour },
-      curr: { index: number; diff: number; colour: Colour },
-    ) => (prev.diff < curr.diff ? prev : curr),
+  const closetColour = similarColours.reduce(
+    (acc: ColourCompare, curr: ColourCompare) =>
+      acc.diff <= curr.diff ? acc : curr,
   )
-  allColours.splice(toReturn.index, 1)
 
-  return toReturn.colour
+  return allColours.splice(closetColour.index, 1)[0]
+}
+
+function draw(ctx: CanvasRenderingContext2D, pixel: Pixel, colour: Colour) {
+  ctx.fillStyle =
+    'rgb(' + colour.red + ',' + colour.blue + ',' + colour.green + ')'
+  ctx.fillRect(pixel.x, pixel.y, 1, 1)
+}
+
+function randInt(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+interface ColourCompare {
+  index: number
+  diff: number
+  colour: Colour
+}
+
+interface Pixel {
+  x: number
+  y: number
+}
+
+interface Colour {
+  red: number
+  blue: number
+  green: number
 }
