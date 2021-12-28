@@ -61,29 +61,27 @@ function initialise() {
 
 function getNeighbourOrRandomPixel(pixel: Pixel): Pixel {
   let neighbourPixel: Array<Pixel> = []
-  for (let y = pixel.y - 1; y <= pixel.y + 1; y++) {
-    for (let x = pixel.x - 1; x <= pixel.x + 1; x++) {
-      if (
-        x < 0 ||
-        y < 0 ||
-        x > width - 1 ||
-        y > height - 1 ||
-        (pixel.x === x && pixel.y === y)
-      )
-        continue
 
-      if (allPixels[x][y]) {
-        neighbourPixel.push({ x, y })
-        // allPixels[x][y] = false
-        // return { x, y }
-      }
-    }
-  }
-  if (neighbourPixel.length > 0) {
+  for (let y = pixel.y - 1; y <= pixel.y + 1; y++)
+    for (let x = pixel.x - 1; x <= pixel.x + 1; x++)
+      neighbourPixel.push({ x, y })
+
+  while (neighbourPixel.length > 0) {
     const toReturn = neighbourPixel.splice(
       randInt(0, neighbourPixel.length - 1),
       1,
     )[0]
+
+    if (
+      toReturn.x < 0 ||
+      toReturn.y < 0 ||
+      toReturn.x > width - 1 ||
+      toReturn.y > height - 1 ||
+      (pixel.x === toReturn.x && pixel.y === toReturn.y) ||
+      !allPixels[toReturn.x][toReturn.y]
+    )
+      continue
+
     allPixels[toReturn.x][toReturn.y] = false
     return toReturn
   }
