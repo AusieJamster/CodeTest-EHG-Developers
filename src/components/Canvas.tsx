@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 
 // 256^3 = 16,777,216 colours in 24-bit color
-const colourMagnitude = 32, //number of colours is colourMagnitude^3
+const colourMagnitude = 32, // number of colours is colourMagnitude^3
   colSteps = 256 / colourMagnitude, // break 256 into x steps
   width = colourMagnitude * 8,
   height = Math.pow(colourMagnitude, 3) / width,
@@ -9,6 +9,7 @@ const colourMagnitude = 32, //number of colours is colourMagnitude^3
 
 let allColours: Array<Colour> = []
 let allPixels: boolean[][] = []
+const beginTime = new Date().getMilliseconds()
 
 const Canvas = () => {
   const canvasRef = useRef() as React.MutableRefObject<HTMLCanvasElement>
@@ -35,6 +36,7 @@ const Canvas = () => {
       currColour = getSimilarColour(currColour)
       draw(context, currPixel, currColour)
     }
+    console.log(new Date().getMilliseconds() - beginTime)
   })
 
   return <canvas ref={canvasRef} width={width} height={height} />
@@ -62,25 +64,27 @@ function initialise() {
 function getNeighbourOrRandomPixel(pixel: Pixel): Pixel {
   let neighbourPixel: Array<Pixel> = []
 
-  for (let y = pixel.y - 1; y <= pixel.y + 1; y++)
-    for (let x = pixel.x - 1; x <= pixel.x + 1; x++)
-      neighbourPixel.push({ x, y })
+  for (let y = pixel.y - 1; y <= pixel.y + 1; y++) {
+    for (let x = pixel.x - 1; x <= pixel.x + 1; x++) {
+      if (
+        x < 0 ||
+        y < 0 ||
+        x > width - 1 ||
+        y > height - 1 ||
+        (pixel.x === x && pixel.y === y) ||
+        !allPixels[x][y]
+      )
+        continue
 
-  while (neighbourPixel.length > 0) {
+      neighbourPixel.push({ x, y })
+    }
+  }
+
+  if (neighbourPixel.length > 0) {
     const toReturn = neighbourPixel.splice(
       randInt(0, neighbourPixel.length - 1),
       1,
     )[0]
-
-    if (
-      toReturn.x < 0 ||
-      toReturn.y < 0 ||
-      toReturn.x > width - 1 ||
-      toReturn.y > height - 1 ||
-      (pixel.x === toReturn.x && pixel.y === toReturn.y) ||
-      !allPixels[toReturn.x][toReturn.y]
-    )
-      continue
 
     allPixels[toReturn.x][toReturn.y] = false
     return toReturn
